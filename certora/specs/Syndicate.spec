@@ -6,8 +6,17 @@ methods {
     isKnotRegistered(bytes32) returns (bool) envfree
     numberOfRegisteredKnots() returns (uint256) envfree
     isNoLongerPartOfSyndicate(bytes32) returns (bool) envfree
+    lastAccumulatedETHPerFreeFloatingShare(bytes32) returns (uint256) envfree
+    totalClaimed() returns (uint256) envfree
+    totalFreeFloatingShares() returns (uint256) envfree
+    lastSeenETHPerFreeFloating() returns (uint256) envfree
+    lastSeenETHPerCollateralizedSlotPerKnot() returns (uint256) envfree
+    accumulatedETHPerCollateralizedSlotPerKnot() returns (uint256) envfree
+    accumulatedETHPerFreeFloatingShare() returns (uint256) envfree
+    priorityStakingEndBlock() returns (uint256) envfree
+    isPriorityStaker(address) returns (bool) envfree
 
-    
+
 
     //// Resolving external calls
 	// stakeHouseUniverse
@@ -40,6 +49,8 @@ methods {
     totalETHProcessedPerCollateralizedKnot(bytes32) returns (uint256) envfree
     sETHStakedBalanceForKnot(bytes32,address) returns (uint256) envfree
     sETHTotalStakeForKnot(bytes32) returns (uint256) envfree
+    sETHUserClaimForKnot(bytes32,address) returns (uint256) envfree
+
     // harnessed functions
     deRegisterKnots(bytes32) 
     deRegisterKnots(bytes32,bytes32)
@@ -97,19 +108,8 @@ function sETHSolvencyCorrollary(address user1, address user2, bytes32 knot) retu
     return sETHStakedBalanceForKnot(knot,user1) + sETHStakedBalanceForKnot(knot,user2) <= sETHTotalStakeForKnot(knot);
 }
 
-// rule getGet() {
-//     bytes32 in1; address in2;
-//     uint256 out1 = accruedEarningPerCollateralizedSlotOwnerOfKnot(in1,in2);
-//     bytes32 in3;
-//     uint256 out2 = totalETHProcessedPerCollateralizedKnot(in3);
-//     bytes32 in4; address in5;
-//     uint256 out3 = sETHStakedBalanceForKnot(in4,in5);
-//     bytes32 in6;
-//     uint256 out4 = sETHTotalStakeForKnot(in6);
-//     assert out1 + out2 + out3 + out4 < 100;
-// }
 
-/**
+/** DONE **
  * An unregistered knot can not be deregistered.
  */
 rule canNotDegisterUnregisteredKnot(method f) filtered {
@@ -123,7 +123,7 @@ rule canNotDegisterUnregisteredKnot(method f) filtered {
     assert lastReverted, "deRegisterKnots must revert if knot is not registered";
 }
 
-/**
+/** DONE **
  * Total ETH received must not decrease.
  */
 rule totalEthReceivedMonotonicallyIncreases(method f) filtered {
@@ -140,8 +140,9 @@ rule totalEthReceivedMonotonicallyIncreases(method f) filtered {
     assert totalEthReceivedAfter >= totalEthReceivedBefore, "total ether received must not decrease";
 }
 
-/**
-* numberOfRegisteredKnots holds 
+// ------------ RULES -------------
+/** -> should check this later
+* numberOfRegisteredKnotsHoldsOnRegisterDeregieter holds 
 */
 rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 blsPubKey,bytes32 blsPubKey2) filtered {
     f -> notRegisterationMethod(f)
@@ -175,7 +176,7 @@ rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 blsPubKey
 
 }
 
-/**
+/** DONE **
 * numberOfRegisteredKnots holds upon register and deregieter
 */
 rule numberOfRegisteredKnotsHolds(method f,bytes32 blsPubKey)
@@ -193,34 +194,150 @@ rule numberOfRegisteredKnotsHolds(method f,bytes32 blsPubKey)
 
 }
 
-// rule sETHRecipientBalanceIncreasesUponUnstake(method f,bytes32 blsPubKey,uint256 sETHAmount) {
-//     env e; 
+/** DONE **
+* Staker invariants (e.g.sETHUserClaimForKnot and sETHStakedBalanceForKnot ) must never decrease via any action taken by another actor.
+*/
+rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker)
+{
+    env e;
+    require e.msg.sender != staker;
 
-//     // require sETHAmount > 0;
-//     // require sETHAmount < max_uint128;
-//     // require sETHAmount < sETHToken.balanceOf(e.msg.sender);
-//     // require sETHStakedBalanceForKnot(blsPubKey,e.msg.sender) >= sETHAmount;
-//     // require e.msg.value == 0; // safe assumption as the function is not payable
-//     // require e.msg.sender != 0;
-//     // require e.msg.sender != currentContract;
-//     // require lastSeenETHPerCollateralizedSlotPerKnot(e) == 1;
-//     // require accumulatedETHPerCollateralizedSlotPerKnot(e) < max_uint128;
-//     // require totalETHReceived() < max_uint128;
-//     // require isKnotRegistered(blsPubKey);
-//     // require numberOfRegisteredKnots 
+    uint256 sETHUserClaimForKnot = sETHUserClaimForKnot(blsPubKey,staker);
+    uint256 sETHStakedBalanceForKnot = sETHStakedBalanceForKnot(blsPubKey,staker);
 
-//     // function stake(bytes[] calldata _blsPubKeys, uint256[] calldata _sETHAmounts, address _onBehalfOf) external {
+    calldataarg args;
+    f(e, args);
 
-//     // stake@withrevert(e, blsPubKey, sETHAmount, e.msg.sender);
+    uint256 sETHUserClaimForKnotAfter = sETHUserClaimForKnot(blsPubKey,staker);
+    uint256 sETHStakedBalanceForKnotAfter = sETHStakedBalanceForKnot(blsPubKey,staker);
 
-// 	uint256 sETHBalanceBefore = sETHToken.balanceOf(e.msg.sender);
+    assert sETHUserClaimForKnot <= sETHUserClaimForKnotAfter, "sETHUserClaimForKnot doesn't hold as expected";
+    assert sETHStakedBalanceForKnot <= sETHStakedBalanceForKnotAfter, "sETHStakedBalanceForKnot doesn't hold as expected";
 
-//     // unstake@withrevert(e, e.msg.sender, e.msg.sender, blsPubKey, sETHAmount);
-//     // unstake(e, e.msg.sender, e.msg.sender, blsPubKey, sETHAmount);
+}
 
-//     uint256 sETHBalanceAfter = sETHToken.balanceOf(e.msg.sender);
-//     assert sETHBalanceAfter == sETHBalanceBefore + sETHAmount, "Balance must increase";
-// }
+
+/** DONE **
+* Staker gets exactly the same sETH amount upon stake and unstake.
+*/
+rule StakerReceivesExactsETH(method f,bytes32 blsPubKey,address staker,uint256 amount)
+{
+    env e;
+    require e.msg.sender == staker;
+    require sETHToken.balanceOf(staker) == amount;
+
+    stake(e,blsPubKey,amount,staker);
+    unstake(e,staker,staker,blsPubKey,amount);
+
+    assert sETHToken.balanceOf(staker) == amount, "Staker got more/less sETH";
+
+}
+
+
+/** DONE **
+ * Staker receives sETH upon unstake.
+ */
+rule receivesETHOnUnstake()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker;
+    uint256 amount;
+
+    require e.msg.sender == staker;
+    require e.msg.value == 0;
+
+    uint256 amountBefore = sETHToken.balanceOf(staker);
+
+    unstake(e,staker,staker,knot,amount);
+
+    uint256 amountAfter = sETHToken.balanceOf(staker);
+
+    assert amountAfter == amountBefore + amount, "Staker didn't receive the expected sETH";
+}
+
+
+/** DONE **
+ * revert if transferring sETH fails upon unstake.
+ */
+rule revertIfsETHTransferFailOnUnstake()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker;
+    uint256 amount;
+
+    require e.msg.sender == staker;
+    require e.msg.value == 0;
+    // require sETHToken.balanceOf(currentContract) < amount; // not enough sETH to cause the transfer failure
+
+    stake@withrevert(e,knot,amount,staker);
+
+    assert lastReverted, "unstake didn't revert on failed transfer";
+
+}
+
+/** DONE **
+ * unclaimed User Share.must be zero upon unstake.
+ */
+rule zeroUnclaimedUserShareOnUnstake()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker;
+    uint256 amount;
+
+    require e.msg.sender == staker;
+    require e.msg.value == 0;
+
+    unstake(e,staker,staker,knot,amount);
+
+    uint256 unclaimedUserShare = calculateUnclaimedFreeFloatingETHShare(e,knot, staker);
+
+
+    assert unclaimedUserShare == 0, "Unclaimed User Share is not zero after unstaking";
+}
+
+/** DONE **
+* When staking block is in future, only those listed in the priority staker list can stake sETH
+*/
+rule onlyPriorityStakerStake()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; // on-behalf
+    uint256 amount;
+
+    require priorityStakingEndBlock() > e.block.number;
+    require !isPriorityStaker(staker);
+    require e.msg.value == 0;
+
+    stake@withrevert(e,knot,amount,staker);
+
+    assert lastReverted, "stake must revert if block in future and staker is not priority";
+
+}
+    // initial state
+    // require sETHStakedBalanceForKnot(blsPubKey,staker) == 0;
+    // require sETHUserClaimForKnot(blsPubKey,staker) == 0;
+
+    // require accumulatedETHPerFreeFloatingShare() == 0;
+    // require accumulatedETHPerCollateralizedSlotPerKnot() == 0;
+    // require lastSeenETHPerCollateralizedSlotPerKnot() == 0;
+    // require lastSeenETHPerFreeFloating() == 0;
+    // require totalFreeFloatingShares() == 0;
+    // require totalClaimed() == 0;
+    // require numberOfRegisteredKnots() == 1;
+    // require isKnotRegistered(blsPubKey);
+    // require !isNoLongerPartOfSyndicate(blsPubKey);
+    // require sETHTotalStakeForKnot(blsPubKey) == 0;
+    // require totalETHProcessedPerCollateralizedKnot(blsPubKey) == 0;
+    // require lastAccumulatedETHPerFreeFloatingShare(blsPubKey) == 0;
+
 
 /**
  * Address 0 must have zero sETH balance.
