@@ -18,8 +18,9 @@ methods {
     priorityStakingEndBlock() returns (uint256) envfree
     isPriorityStaker(address) returns (bool) envfree
     getEthBalance(address) returns (uint256) envfree
-
-
+    calculateETHForFreeFloatingOrCollateralizedHolders() returns (uint256) envfree
+    getUnprocessedETHForAllCollateralizedSlot() returns (uint256) envfree
+    
     //// Resolving external calls
 	// stakeHouseUniverse
 	stakeHouseKnotInfo(bytes32) returns (address,address,address,uint256,uint256,bool) => DISPATCHER(true)
@@ -124,6 +125,20 @@ rule sETHStakedBalanceForKnotInvariant(method f) {
   assert sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
 }
 
+    // function getUnprocessedETHForAllCollateralizedSlot() public view returns (uint256) {
+    //     return ((calculateETHForFreeFloatingOrCollateralizedHolders() - lastSeenETHPerCollateralizedSlotPerKnot) / numberOfRegisteredKnots);
+    // }
+
+/**
+* Check Correctness of amount of ETH per collateralized share that hasn't yet been allocated to each share
+**/
+rule CorrectAmountOfUnprocessedETHForAllCollateralizedSlot() {
+    mathint calcETH = calculateETHForFreeFloatingOrCollateralizedHolders();
+    mathint lastSeenETH = lastSeenETHPerCollateralizedSlotPerKnot();
+    mathint registeredKnots = numberOfRegisteredKnots();
+    mathint UnprocessedETH = getUnprocessedETHForAllCollateralizedSlot();
+    assert UnprocessedETH == (calcETH-lastSeenETH)/registeredKnots;
+}
 
 /// Corrollary that can be used as requirement after sETH solvency is proven.
 function sETHSolvencyCorrollary(address user1, address user2, bytes32 knot) returns bool {
