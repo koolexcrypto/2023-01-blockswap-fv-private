@@ -283,8 +283,8 @@ rule revertIfsETHTransferFailOnUnstake()
     unstake@withrevert(e,e.msg.sender,e.msg.sender,knot,amount);
     bool reverted = lastReverted;
 
-    assert sETHToken.balanceOf(e.msg.sender) != stakerBalanceBefore - amount => reverted , "unstake didn't revert on failed transfer";
-    assert sETHToken.balanceOf(currentContract) != contractBalanceBefore + amount => reverted , "unstake didn't revert on failed transfer";
+    assert sETHToken.balanceOf(e.msg.sender) != stakerBalanceBefore + amount => reverted , "unstake didn't revert on failed transfer";
+    assert sETHToken.balanceOf(currentContract) != contractBalanceBefore - amount => reverted , "unstake didn't revert on failed transfer";
 
 }
 
