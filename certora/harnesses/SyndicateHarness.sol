@@ -132,5 +132,9 @@ contract SyndicateHarness is Syndicate {
     function getStakeHouseUniverse() internal view override returns (IStakeHouseUniverse stakeHouseUniverse) {
         return IStakeHouseUniverse(universe);
     }
+
+    function getEthBalance(address account) public view returns (uint256){
+		return account.balance;
+	}
 }
 
