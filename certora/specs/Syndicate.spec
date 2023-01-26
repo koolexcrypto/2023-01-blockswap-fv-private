@@ -15,7 +15,7 @@ methods {
     accumulatedETHPerFreeFloatingShare() returns (uint256) envfree
     priorityStakingEndBlock() returns (uint256) envfree
     isPriorityStaker(address) returns (bool) envfree
-
+    getEthBalance(address) returns (uint256) envfree
 
 
     //// Resolving external calls
@@ -322,25 +322,78 @@ rule revertIfsETHTransferFailOnStake()
 }
 
 /** DONE **
- * unclaimed User Share must be zero upon unstake.
+ * Staker receives uncalimed share of ETH when claiming.
  */
-rule zeroUnclaimedUserShareOnUnstake()
+rule stakerReceivesExactUnclaimedETHWhenClaiming()
 {
     
     env e;
     bytes32 knot;
-    address staker;
     uint256 amount;
+    
+    // Safe Assumptions
+    require e.msg.sender != 0;
+    require e.msg.sender != currentContract;
+    require e.msg.value == 0;
+    updateAccruedETHPerShares(e);
+    uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
+    uint256 etherBalance = getEthBalance(e.msg.sender);
+    claimAsStaker(e,e.msg.sender,knot);
 
-    require e.msg.sender == staker;
+    uint256 etherBalanceAfter = getEthBalance(e.msg.sender);
+
+    assert etherBalanceAfter == etherBalance + unclaimed ,"Staker didn't receive exact ether share";
+
+}
+
+/** DONE **
+ * unclaimed User Share must be zero after claiming as a staker.
+ */
+rule zeroUnclaimedUserShareAfterClaiming()
+{
+    
+    env e;
+    bytes32 knot;
+    uint256 amount;
+    
+    // Safe Assumptions
+    require e.msg.sender != 0;
+    require e.msg.sender != currentContract;
     require e.msg.value == 0;
 
-    unstake(e,staker,staker,knot,amount);
+    uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
 
-    uint256 unclaimedUserShare = calculateUnclaimedFreeFloatingETHShare(e,knot, staker);
+    claimAsStaker(e,e.msg.sender,knot);
 
+    uint256 unclaimedAfter = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
 
-    assert unclaimedUserShare == 0, "Unclaimed User Share is not zero after unstaking";
+    assert unclaimed > 0 => unclaimedAfter == 0 ,"Unclaimed User Share is not zero after claiming";
+
+}
+
+/** DONE **
+ * Staker receives uncalimed share of ETH.
+ */
+rule stakerReceivesUnclaimedUserShareOnUnstake()
+{    
+    env e;
+    bytes32 knot;
+    uint256 amount;
+    
+    require e.msg.sender != 0;
+    require e.msg.sender != currentContract;
+    require e.msg.value == 0;
+
+    updateAccruedETHPerShares(e);
+    uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
+    uint256 etherBalance = getEthBalance(e.msg.sender);
+
+    unstake(e,e.msg.sender,e.msg.sender,knot,amount);
+
+    uint256 etherBalanceAfter = getEthBalance(e.msg.sender);
+
+    assert etherBalanceAfter == etherBalance + unclaimed ,"Staker didn't receive ether share";
+
 }
 
 /** DONE **
