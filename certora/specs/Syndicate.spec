@@ -1,5 +1,7 @@
 using MocksETH as sETHToken
 
+
+
 methods {
     //// Regular methods
     totalETHReceived() returns (uint256) envfree
@@ -101,6 +103,26 @@ definition notRegisterationMethod(method f) returns bool =
     && f.selector != registerKnotsToSyndicate(bytes32,bytes32).selector
     && f.selector != deRegisterKnots(bytes32).selector
     && f.selector != deRegisterKnots(bytes32,bytes32).selector;
+
+
+// ghost mathint ghostTotalClaimed;
+ghost mapping(bytes32 => uint256) ghostsETHTotalStakeForKnot;
+
+hook Sstore sETHStakedBalanceForKnot[KEY bytes32 knot][KEY address user] uint256 staked (uint256 old_staked) STORAGE {
+  ghostsETHTotalStakeForKnot[knot] = ghostsETHTotalStakeForKnot[knot] + staked - old_staked;
+}
+
+/**
+* validate sETHStakedBalanceForKnot is updated when sETHStakedBalanceForKnot gets updated for a user
+**/
+rule sETHStakedBalanceForKnotInvariant(method f) {
+  env e;
+  bytes32 knot;
+  require sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
+  calldataarg arg;
+  f(e, arg);
+  assert sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
+}
 
 
 /// Corrollary that can be used as requirement after sETH solvency is proven.
