@@ -218,7 +218,7 @@ rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker
 
 
 /** DONE **
-* Staker gets exactly the same sETH amount upon stake and unstake.
+* Staker gets exactly the same sETH token amount upon stake and unstake.
 */
 rule StakerReceivesExactsETH(method f,bytes32 blsPubKey,address staker,uint256 amount)
 {
@@ -235,7 +235,7 @@ rule StakerReceivesExactsETH(method f,bytes32 blsPubKey,address staker,uint256 a
 
 
 /** DONE **
- * Staker receives sETH upon unstake.
+ * Staker receives sETH token upon unstake.
  */
 rule receivesETHOnUnstake()
 {
@@ -259,7 +259,7 @@ rule receivesETHOnUnstake()
 
 
 /** DONE **
- * revert if transferring sETH fails upon unstake.
+ * revert if transferring sETH token fails upon unstake.
  */
 rule revertIfsETHTransferFailOnUnstake()
 {
@@ -289,39 +289,40 @@ rule revertIfsETHTransferFailOnUnstake()
 }
 
 /** DONE **
- * revert if transferring sETH fails upon stake.
+ * revert if transferring sETH token fails upon stake.
  */
-// rule revertIfsETHTransferFailOnStake()
-// {
+rule revertIfsETHTransferFailOnStake()
+{
     
-//     env e;
-//     bytes32 knot;
-//     uint256 amount;
+    env e;
+    bytes32 knot;
+    uint256 amount;
 
-//     require e.msg.sender != 0;
-//     require currentContract != 0;
-//     require e.msg.sender != currentContract;
-//     require e.msg.value == 0;
-//     require amount > 1000000000;
-//     require isKnotRegistered(knot) && !isNoLongerPartOfSyndicate(knot);
-//     require priorityStakingEndBlock() <= e.block.number;
-//     require amount + sETHTotalStakeForKnot(knot) <= 12000000000000000000;
-//     // cause transfer failure
-//     require sETHToken.balanceOf(e.msg.sender) < amount;
+    // Safe assumptions
+    require e.msg.sender != 0;
+    require currentContract != 0;
+    require e.msg.sender != currentContract;
+    require e.msg.value == 0;
+    require amount > 1000000000;
+    require isKnotRegistered(knot) && !isNoLongerPartOfSyndicate(knot);
+    require priorityStakingEndBlock() <= e.block.number;
+    require amount + sETHTotalStakeForKnot(knot) <= 12000000000000000000;
+    // This condition just to cause transfer failure 
+    require sETHToken.balanceOf(e.msg.sender) < amount;
 
-//     uint256 stakerBalanceBefore = sETHToken.balanceOf(e.msg.sender);
-//     uint256 contractBalanceBefore = sETHToken.balanceOf(currentContract);
+    uint256 stakerBalanceBefore = sETHToken.balanceOf(e.msg.sender);
+    uint256 contractBalanceBefore = sETHToken.balanceOf(currentContract);
 
-//     stake@withrevert(e,knot,amount,e.msg.sender);
-//     bool reverted = lastReverted;
+    stake@withrevert(e,knot,amount,e.msg.sender);
+    bool reverted = lastReverted;
 
-//     assert sETHToken.balanceOf(e.msg.sender) != stakerBalanceBefore - amount => reverted , "unstake didn't revert on failed transfer";
-//     assert sETHToken.balanceOf(currentContract) != contractBalanceBefore + amount => reverted , "unstake didn't revert on failed transfer";
+    assert sETHToken.balanceOf(e.msg.sender) != stakerBalanceBefore - amount => reverted , "unstake didn't revert on failed transfer";
+    assert sETHToken.balanceOf(currentContract) != contractBalanceBefore + amount => reverted , "unstake didn't revert on failed transfer";
 
-// }
+}
 
 /** DONE **
- * unclaimed User Share.must be zero upon unstake.
+ * unclaimed User Share must be zero upon unstake.
  */
 rule zeroUnclaimedUserShareOnUnstake()
 {
