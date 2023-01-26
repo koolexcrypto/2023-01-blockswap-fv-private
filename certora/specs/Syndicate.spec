@@ -266,18 +266,59 @@ rule revertIfsETHTransferFailOnUnstake()
     
     env e;
     bytes32 knot;
-    address staker;
     uint256 amount;
 
-    require e.msg.sender == staker;
+    // Safe assumptions
+    require e.msg.sender != 0;
+    require currentContract != 0;
+    require e.msg.sender != currentContract;
     require e.msg.value == 0;
-    // require sETHToken.balanceOf(currentContract) < amount; // not enough sETH to cause the transfer failure
+    require sETHStakedBalanceForKnot(knot,e.msg.sender) >= amount;
+    // This condition just to cause transfer failure 
+    require sETHToken.balanceOf(currentContract) < amount;
 
-    stake@withrevert(e,knot,amount,staker);
+    uint256 stakerBalanceBefore = sETHToken.balanceOf(e.msg.sender);
+    uint256 contractBalanceBefore = sETHToken.balanceOf(currentContract);
 
-    assert lastReverted, "unstake didn't revert on failed transfer";
+    unstake@withrevert(e,e.msg.sender,e.msg.sender,knot,amount);
+    bool reverted = lastReverted;
+
+    assert sETHToken.balanceOf(e.msg.sender) != stakerBalanceBefore - amount => reverted , "unstake didn't revert on failed transfer";
+    assert sETHToken.balanceOf(currentContract) != contractBalanceBefore + amount => reverted , "unstake didn't revert on failed transfer";
 
 }
+
+/** DONE **
+ * revert if transferring sETH fails upon stake.
+ */
+// rule revertIfsETHTransferFailOnStake()
+// {
+    
+//     env e;
+//     bytes32 knot;
+//     uint256 amount;
+
+//     require e.msg.sender != 0;
+//     require currentContract != 0;
+//     require e.msg.sender != currentContract;
+//     require e.msg.value == 0;
+//     require amount > 1000000000;
+//     require isKnotRegistered(knot) && !isNoLongerPartOfSyndicate(knot);
+//     require priorityStakingEndBlock() <= e.block.number;
+//     require amount + sETHTotalStakeForKnot(knot) <= 12000000000000000000;
+//     // cause transfer failure
+//     require sETHToken.balanceOf(e.msg.sender) < amount;
+
+//     uint256 stakerBalanceBefore = sETHToken.balanceOf(e.msg.sender);
+//     uint256 contractBalanceBefore = sETHToken.balanceOf(currentContract);
+
+//     stake@withrevert(e,knot,amount,e.msg.sender);
+//     bool reverted = lastReverted;
+
+//     assert sETHToken.balanceOf(e.msg.sender) != stakerBalanceBefore - amount => reverted , "unstake didn't revert on failed transfer";
+//     assert sETHToken.balanceOf(currentContract) != contractBalanceBefore + amount => reverted , "unstake didn't revert on failed transfer";
+
+// }
 
 /** DONE **
  * unclaimed User Share.must be zero upon unstake.
