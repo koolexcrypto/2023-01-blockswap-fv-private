@@ -1,4 +1,6 @@
 using MocksETH as sETHToken
+using MockStakeHouseRegistry as StakeHouseRegistry
+using MockStakeHouseUniverse as StakeHouseUniverse
 
 
 
@@ -24,7 +26,7 @@ methods {
     //// Resolving external calls
 	// stakeHouseUniverse
 	stakeHouseKnotInfo(bytes32) returns (address,address,address,uint256,uint256,bool) => DISPATCHER(true)
-    memberKnotToStakeHouse(bytes32) returns (address) => DISPATCHER(true) // not used directly by Syndicate
+    // memberKnotToStakeHouse(bytes32) returns (address) => DISPATCHER(true) // not used directly by Syndicate
     // stakeHouseRegistry
     getMemberInfo(bytes32) returns (address,uint256,uint16,bool) => DISPATCHER(true) // not used directly by Syndicate
     // slotSettlementRegistry
@@ -33,6 +35,12 @@ methods {
 	numberOfCollateralisedSlotOwnersForKnot(bytes32) returns (uint256)  => DISPATCHER(true)
 	getCollateralisedOwnerAtIndex(bytes32, uint256) returns (address) => DISPATCHER(true)
 	totalUserCollateralisedSLOTBalanceForKnot(address, address, bytes32) returns (uint256) => DISPATCHER(true)
+    
+    // StakeHouseUniverse
+    StakeHouseUniverse.memberKnotToStakeHouse(bytes32) returns (address) envfree
+    // StakeHouseRegistry
+    StakeHouseRegistry.active(bytes32) returns (bool) envfree
+
     // sETH
     sETHToken.balanceOf(address) returns (uint256) envfree
     // ERC20
@@ -453,22 +461,6 @@ rule onlyPriorityStakerStake()
     assert lastReverted, "stake must revert if block in future and staker is not priority";
 
 }
-    // initial state
-    // require sETHStakedBalanceForKnot(blsPubKey,staker) == 0;
-    // require sETHUserClaimForKnot(blsPubKey,staker) == 0;
-
-    // require accumulatedETHPerFreeFloatingShare() == 0;
-    // require accumulatedETHPerCollateralizedSlotPerKnot() == 0;
-    // require lastSeenETHPerCollateralizedSlotPerKnot() == 0;
-    // require lastSeenETHPerFreeFloating() == 0;
-    // require totalFreeFloatingShares() == 0;
-    // require totalClaimed() == 0;
-    // require numberOfRegisteredKnots() == 1;
-    // require isKnotRegistered(blsPubKey);
-    // require !isNoLongerPartOfSyndicate(blsPubKey);
-    // require sETHTotalStakeForKnot(blsPubKey) == 0;
-    // require totalETHProcessedPerCollateralizedKnot(blsPubKey) == 0;
-    // require lastAccumulatedETHPerFreeFloatingShare(blsPubKey) == 0;
 
 
 /**
