@@ -154,7 +154,7 @@ function sETHSolvencyCorrollary(address user1, address user2, bytes32 knot) retu
 }
 
 
-/** DONE **
+/**
  * An unregistered knot can not be deregistered.
  */
 rule canNotDegisterUnregisteredKnot(method f) filtered {
@@ -168,7 +168,7 @@ rule canNotDegisterUnregisteredKnot(method f) filtered {
     assert lastReverted, "deRegisterKnots must revert if knot is not registered";
 }
 
-/** DONE **
+/**
  * Total ETH received must not decrease.
  */
 rule totalEthReceivedMonotonicallyIncreases(method f) filtered {
@@ -221,7 +221,7 @@ rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 blsPubKey
 
 }
 
-/** DONE **
+/**
 * numberOfRegisteredKnots holds upon register and deregieter
 */
 rule numberOfRegisteredKnotsHolds(method f,bytes32 blsPubKey)
@@ -239,7 +239,7 @@ rule numberOfRegisteredKnotsHolds(method f,bytes32 blsPubKey)
 
 }
 
-/** DONE **
+/**
 * Staker invariants (e.g.sETHUserClaimForKnot and sETHStakedBalanceForKnot ) must never decrease via any action taken by another actor.
 */
 rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker)
@@ -262,7 +262,7 @@ rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker
 }
 
 
-/** DONE **
+/**
 * Staker gets exactly the same sETH token amount upon stake and unstake.
 */
 rule StakerReceivesExactsETH(method f,bytes32 blsPubKey,address staker,uint256 amount)
@@ -279,7 +279,7 @@ rule StakerReceivesExactsETH(method f,bytes32 blsPubKey,address staker,uint256 a
 }
 
 
-/** DONE **
+/**
  * Staker receives sETH token upon unstake.
  */
 rule receivesETHOnUnstake()
@@ -303,7 +303,7 @@ rule receivesETHOnUnstake()
 }
 
 
-/** DONE **
+/**
  * revert if transferring sETH token fails upon unstake.
  */
 rule revertIfsETHTransferFailOnUnstake()
@@ -333,7 +333,7 @@ rule revertIfsETHTransferFailOnUnstake()
 
 }
 
-/** DONE **
+/**
  * revert if transferring sETH token fails upon stake.
  */
 rule revertIfsETHTransferFailOnStake()
@@ -366,7 +366,7 @@ rule revertIfsETHTransferFailOnStake()
 
 }
 
-/** DONE **
+/**
  * Staker receives uncalimed share of ETH when claiming.
  */
 rule stakerReceivesExactUnclaimedETHWhenClaiming()
@@ -391,7 +391,7 @@ rule stakerReceivesExactUnclaimedETHWhenClaiming()
 
 }
 
-/** DONE **
+/**
  * unclaimed User Share must be zero after claiming as a staker.
  */
 rule zeroUnclaimedUserShareAfterClaiming()
@@ -416,7 +416,7 @@ rule zeroUnclaimedUserShareAfterClaiming()
 
 }
 
-/** DONE **
+/**
  * Staker receives uncalimed share of ETH.
  */
 rule stakerReceivesUnclaimedUserShareOnUnstake()
@@ -441,7 +441,7 @@ rule stakerReceivesUnclaimedUserShareOnUnstake()
 
 }
 
-/** DONE **
+/**
 * When staking block is in future, only those listed in the priority staker list can stake sETH
 */
 rule onlyPriorityStakerStake()
@@ -462,6 +462,52 @@ rule onlyPriorityStakerStake()
 
 }
 
+
+
+/**
+sETHTotalStakeForKnot must never go above 12 ether
+**/
+rule totalStakeForKnotMaxIs12Ether(method f,bytes32 knot)
+{
+    require sETHTotalStakeForKnot(knot) <= 12^18;
+
+    env e;
+    calldataarg args;
+    f(e, args);
+
+    assert sETHTotalStakeForKnot(knot) <= 12^18;
+}
+
+
+/**
+* can not register already registered knot
+*/
+rule knotCanNotBeRegisteredTwice()
+{
+    env e;
+    bytes32 knot;
+
+    registerKnotsToSyndicate(e,knot);
+    registerKnotsToSyndicate@withrevert(e,knot);
+    bool reverted = lastReverted;
+
+    assert reverted, "Knot was registered twice";
+}
+
+
+/**
+* can not register already registered knot
+*/
+rule knotCanNotBeRegisteredIfHasNoOwners()
+{
+    env e;
+    bytes32 knot;
+    require numberOfCollateralisedSlotOwnersForKnot(e,knot) == 0;
+    registerKnotsToSyndicate@withrevert(e,knot);
+    bool reverted = lastReverted;
+
+    assert reverted, "Knot was registered with no SLOT owners";
+}
 
 /**
  * Address 0 must have zero sETH balance.
