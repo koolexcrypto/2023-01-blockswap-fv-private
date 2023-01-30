@@ -22,7 +22,7 @@ methods {
     getEthBalance(address) returns (uint256) envfree
     calculateETHForFreeFloatingOrCollateralizedHolders() returns (uint256) envfree
     getUnprocessedETHForAllCollateralizedSlot() returns (uint256) envfree
-    
+    owner() returns (address) envfree
     //// Resolving external calls
 	// stakeHouseUniverse
 	stakeHouseKnotInfo(bytes32) returns (address,address,address,uint256,uint256,bool) => DISPATCHER(true)
@@ -81,15 +81,18 @@ methods {
     batchUpdateCollateralizedSlotOwnersAccruedETH(bytes32,bytes32)
 }
 
-/** DONE **
-* deregister knot should succeed when it is inactive 
-*/
+/** 
+Title: Deregistering inactive knot always reverts
+Description: 
+When the liquid staking manager (Syndicate owner) calls deRegisterKnots to deregister a knot, 
+and if the knot is inactive, the function will always revert.
+**/
 rule deregisterInactiveKnotShouldSucceed()
 {
     env e;
     bytes32 knot;
     
-    require e.msg.sender == owner(e);
+    require e.msg.sender == owner();
     require e.msg.value == 0;
     // safe assumptions 
     require StakeHouseUniverse.memberKnotToStakeHouse(knot) != 0;
