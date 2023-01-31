@@ -682,6 +682,7 @@ rule claimAsSLOTOwnerToZeroRevertIfKnotNotRegistered()
     bytes32 knot;
     address recipient;
     require e.msg.value == 0;
+    require recipient != 0;
 
     claimAsCollateralizedSLOTOwner@withrevert(e,recipient,knot);
     bool reverted = lastReverted;
