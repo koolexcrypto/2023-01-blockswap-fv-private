@@ -115,6 +115,33 @@ rule deregisterInactiveKnotShouldSucceed()
 
 
 /**
+Title: TotalFreeFloatingShares deduction for inactive knots
+Description: 
+If a knot went inactive in the stakehouse, 
+and a user unstake his/her sETH balance before deregistering the knot,
+The Syndicate deducts this amount from TotalFreeFloatingShares which is not supposed to occur.
+*/
+rule totalFreeFloatingSharesCountActiveKnotsOnly()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; 
+    uint256 amount;
+    require amount > 0;
+
+    uint256 totalFreeFloatingShares = totalFreeFloatingShares();
+    bool isKnotActive = StakeHouseRegistry.active(knot);
+
+    unstake(e,staker,staker,knot,amount);
+    uint256 totalFreeFloatingSharesAfter = totalFreeFloatingShares();
+
+    assert !isKnotActive =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by an inactive knot";
+
+}
+
+
+/**
  * Address 0 must have zero sETH balance.
  */
 invariant addressZeroHasNoBalance()
