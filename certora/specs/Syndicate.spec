@@ -631,6 +631,52 @@ rule unstakeToZeroRecipientAddreessRevert()
 
 }
 
+/**
+* totalFreeFloatingShares counts active knots only
+*/
+rule totalFreeFloatingSharesCountActiveKnotsOnly()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; 
+    uint256 amount;
+
+    mathint totalFreeFloatingShares = totalFreeFloatingShares();
+    bool isKnotActive = StakeHouseRegistry.active(knot);
+
+    unstake(e,staker,staker,knot,amount);
+    mathint totalFreeFloatingSharesAfter = totalFreeFloatingShares();
+
+    assert !isKnotActive =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by an inactive knot";
+
+}
+
+/**
+* totalFreeFloatingShares counts non deregistered knots only
+*/
+rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; 
+    uint256 amount;
+
+    mathint totalFreeFloatingShares = totalFreeFloatingShares();
+    bool isDeregistered = isNoLongerPartOfSyndicate(knot);
+
+    unstake(e,staker,staker,knot,amount);
+    mathint totalFreeFloatingSharesAfter = totalFreeFloatingShares();
+
+    assert isDeregistered =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
+
+}
+
+
+
+
+
 // This should be covered. IMPORTANT
 // // Only decrease totalFreeFloatingShares in the event that the knot is still active in the syndicate
 // if (!isNoLongerPartOfSyndicate[_blsPubKey]) {
