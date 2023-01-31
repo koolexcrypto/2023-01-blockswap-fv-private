@@ -136,5 +136,10 @@ contract SyndicateHarness is Syndicate {
     function getEthBalance(address account) public view returns (uint256){
 		return account.balance;
 	}
+
+    function getStakeHouseForKnot(blsKey _blsPubKey) public view returns (address){
+        (address stakeHouse,,,,,) = getStakeHouseUniverse().stakeHouseKnotInfo(blsKey.unwrap(_blsPubKey));
+        return stakeHouse;
+	}
 }
 
