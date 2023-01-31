@@ -653,6 +653,23 @@ rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
 
 }
 
+/**
+*  claimAsCollateralizedSLOTOwner to Syndicate or zero address reverts
+*/
+rule claimAsSLOTOwnerToZeroRecipientAddreessRevert()
+{
+    
+    env e;
+    bytes32 knot;
+    address recipient; 
+
+    claimAsCollateralizedSLOTOwner@withrevert(e,recipient,knot);
+    bool reverted = lastReverted;
+
+    assert recipient == 0 => lastReverted, "calim must revert if recipient address is zero";
+    assert recipient == currentContract => lastReverted, "calim must revert if recipient address is Syndicate";
+
+}
 
 
 /**
