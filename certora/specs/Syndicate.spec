@@ -32,12 +32,10 @@ methods {
     // slotSettlementRegistry
 	stakeHouseShareTokens(address) returns (address)  => DISPATCHER(true)
 	currentSlashedAmountOfSLOTForKnot(bytes32) returns (uint256)  => DISPATCHER(true)
-	// numberOfCollateralisedSlotOwnersForKnot(bytes32) returns (uint256)  => DISPATCHER(true)
+	numberOfCollateralisedSlotOwnersForKnot(bytes32) returns (uint256)  => DISPATCHER(true)
 	getCollateralisedOwnerAtIndex(bytes32, uint256) returns (address) => DISPATCHER(true)
 	totalUserCollateralisedSLOTBalanceForKnot(address, address, bytes32) returns (uint256) => DISPATCHER(true)
     
-    // SlotSettlementRegistry
-    SlotSettlementRegistry.numberOfCollateralisedSlotOwnersForKnot(bytes32) returns (uint256)  envfree
     // StakeHouseUniverse
     StakeHouseUniverse.memberKnotToStakeHouse(bytes32) returns (address) envfree
     // StakeHouseRegistry
@@ -509,7 +507,7 @@ rule knotCanNotBeRegisteredIfHasNoOwners()
 {
     env e;
     bytes32 knot;
-    require SlotSettlementRegistry.numberOfCollateralisedSlotOwnersForKnot(knot) == 0;
+    require SlotSettlementRegistry.numberOfCollateralisedSlotOwnersForKnot(e,knot) == 0;
     
     registerKnotsToSyndicate@withrevert(e,knot);
     bool reverted = lastReverted;
@@ -655,32 +653,6 @@ rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
 
 }
 
-
-// rule totalFreeFloatingSharesCountActiveKnotsOnly()
-// {
-    
-//     env e;
-//     bytes32 knot;
-//     address staker; 
-//     uint256 amount;
-//     require amount > 0;
-
-//     uint256 totalFreeFloatingShares = totalFreeFloatingShares();
-//     bool isKnotActive = StakeHouseRegistry.active(knot);
-
-//     unstake(e,staker,staker,knot,amount);
-//     uint256 totalFreeFloatingSharesAfter = totalFreeFloatingShares();
-
-//     assert !isKnotActive =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by an inactive knot";
-
-// }
-
-
-// This should be covered. IMPORTANT
-// // Only decrease totalFreeFloatingShares in the event that the knot is still active in the syndicate
-// if (!isNoLongerPartOfSyndicate[_blsPubKey]) {
-//     totalFreeFloatingShares -= _sETHAmount;
-// }
 
 
 /**
