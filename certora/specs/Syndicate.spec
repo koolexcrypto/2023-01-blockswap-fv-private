@@ -681,13 +681,11 @@ rule claimAsSLOTOwnerToZeroRevertIfKnotNotRegistered()
     env e;
     bytes32 knot;
     address recipient;
-    require e.msg.value == 0;
-    require recipient != 0;
 
-    claimAsCollateralizedSLOTOwner@withrevert(e,recipient,knot);
-    bool reverted = lastReverted;
+    claimAsCollateralizedSLOTOwner(e,recipient,knot);
 
-    assert !isKnotRegistered(knot) => lastReverted, "calim must revert if knot unregistered";
+
+    assert !isKnotRegistered(knot) => false, "calim must always revert if knot unregistered";
 
 }
 
