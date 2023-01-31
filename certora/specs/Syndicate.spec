@@ -618,16 +618,25 @@ rule unstakeToZeroRecipientAddreessRevert()
     
     env e;
     bytes32 knot;
-    address staker; 
+    address sETHRecipient; 
+    address ETHRecipient; 
     uint256 amount;
 
 
-    unstake@withrevert(e,staker,staker,knot,amount);
+    unstake@withrevert(e,ETHRecipient,sETHRecipient,knot,amount);
     bool reverted = lastReverted;
 
-    assert staker == 0 => lastReverted, "unstake must revert if recipient address is zero";
+    assert sETHRecipient == 0 => lastReverted, "unstake must revert if sETH recipient address is zero";
+    assert ETHRecipient == 0 => lastReverted, "unstake must revert if ETH recipient address is zero";
 
 }
+
+// This should be covered. IMPORTANT
+// // Only decrease totalFreeFloatingShares in the event that the knot is still active in the syndicate
+// if (!isNoLongerPartOfSyndicate[_blsPubKey]) {
+//     totalFreeFloatingShares -= _sETHAmount;
+// }
+
 
 /**
  * Address 0 must have zero sETH balance.
