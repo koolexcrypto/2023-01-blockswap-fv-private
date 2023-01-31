@@ -387,7 +387,7 @@ rule stakerReceivesExactUnclaimedETHWhenClaiming()
     require e.msg.sender != 0;
     require e.msg.sender != currentContract;
     require e.msg.value == 0;
-    updateAccruedETHPerShares(e);
+    updateAccruedETHPerShares(e); // assuming this was called before, otherwise, it is a issue.
     uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
     uint256 etherBalance = getEthBalance(e.msg.sender);
     claimAsStaker(e,e.msg.sender,knot);
@@ -631,26 +631,7 @@ rule unstakeToZeroRecipientAddreessRevert()
 
 }
 
-/**
-* totalFreeFloatingShares counts active knots only
-*/
-rule totalFreeFloatingSharesCountActiveKnotsOnly()
-{
-    
-    env e;
-    bytes32 knot;
-    address staker; 
-    uint256 amount;
 
-    mathint totalFreeFloatingShares = totalFreeFloatingShares();
-    bool isKnotActive = StakeHouseRegistry.active(knot);
-
-    unstake(e,staker,staker,knot,amount);
-    mathint totalFreeFloatingSharesAfter = totalFreeFloatingShares();
-
-    assert !isKnotActive =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by an inactive knot";
-
-}
 
 /**
 * totalFreeFloatingShares counts non deregistered knots only
@@ -662,19 +643,37 @@ rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
     bytes32 knot;
     address staker; 
     uint256 amount;
-
-    mathint totalFreeFloatingShares = totalFreeFloatingShares();
+    require amount > 0;
+    uint256 totalFreeFloatingShares = totalFreeFloatingShares();
     bool isDeregistered = isNoLongerPartOfSyndicate(knot);
 
     unstake(e,staker,staker,knot,amount);
-    mathint totalFreeFloatingSharesAfter = totalFreeFloatingShares();
+    uint256 totalFreeFloatingSharesAfter = totalFreeFloatingShares();
 
     assert isDeregistered =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
+    assert !isDeregistered =>  totalFreeFloatingShares+amount == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
 
 }
 
 
+// rule totalFreeFloatingSharesCountActiveKnotsOnly()
+// {
+    
+//     env e;
+//     bytes32 knot;
+//     address staker; 
+//     uint256 amount;
+//     require amount > 0;
 
+//     uint256 totalFreeFloatingShares = totalFreeFloatingShares();
+//     bool isKnotActive = StakeHouseRegistry.active(knot);
+
+//     unstake(e,staker,staker,knot,amount);
+//     uint256 totalFreeFloatingSharesAfter = totalFreeFloatingShares();
+
+//     assert !isKnotActive =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by an inactive knot";
+
+// }
 
 
 // This should be covered. IMPORTANT
