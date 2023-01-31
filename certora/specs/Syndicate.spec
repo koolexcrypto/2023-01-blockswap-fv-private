@@ -673,6 +673,24 @@ rule claimAsSLOTOwnerToZeroRecipientAddreessRevert()
 
 
 /**
+*  claimAsCollateralizedSLOTOwner reverts for not registered knot
+*/
+rule claimAsSLOTOwnerToZeroRevertIfKnotNotRegistered()
+{
+    
+    env e;
+    bytes32 knot;
+    address recipient;
+    require e.msg.value == 0;
+
+    claimAsCollateralizedSLOTOwner@withrevert(e,recipient,knot);
+    bool reverted = lastReverted;
+
+    assert !isKnotRegistered(knot) => lastReverted, "calim must revert if knot unregistered";
+
+}
+
+/**
  * Address 0 must have zero sETH balance.
  */
 invariant addressZeroHasNoBalance()
