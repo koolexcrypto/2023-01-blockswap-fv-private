@@ -1,7 +1,7 @@
 using MocksETH as sETHToken
 using MockStakeHouseRegistry as StakeHouseRegistry
 using MockStakeHouseUniverse as StakeHouseUniverse
-
+using MockSlotSettlementRegistry as SlotSettlementRegistry
 
 
 methods {
@@ -32,10 +32,12 @@ methods {
     // slotSettlementRegistry
 	stakeHouseShareTokens(address) returns (address)  => DISPATCHER(true)
 	currentSlashedAmountOfSLOTForKnot(bytes32) returns (uint256)  => DISPATCHER(true)
-	numberOfCollateralisedSlotOwnersForKnot(bytes32) returns (uint256)  => DISPATCHER(true)
+	// numberOfCollateralisedSlotOwnersForKnot(bytes32) returns (uint256)  => DISPATCHER(true)
 	getCollateralisedOwnerAtIndex(bytes32, uint256) returns (address) => DISPATCHER(true)
 	totalUserCollateralisedSLOTBalanceForKnot(address, address, bytes32) returns (uint256) => DISPATCHER(true)
     
+    // SlotSettlementRegistry
+    SlotSettlementRegistry.numberOfCollateralisedSlotOwnersForKnot(bytes32) returns (uint256)  envfree
     // StakeHouseUniverse
     StakeHouseUniverse.memberKnotToStakeHouse(bytes32) returns (address) envfree
     // StakeHouseRegistry
@@ -502,12 +504,31 @@ rule knotCanNotBeRegisteredIfHasNoOwners()
 {
     env e;
     bytes32 knot;
-    require numberOfCollateralisedSlotOwnersForKnot(e,knot) == 0;
+    require SlotSettlementRegistry.numberOfCollateralisedSlotOwnersForKnot(knot) == 0;
+    
     registerKnotsToSyndicate@withrevert(e,knot);
     bool reverted = lastReverted;
 
     assert reverted, "Knot was registered with no SLOT owners";
 }
+
+/**
+* can not register inactive knot
+*/
+rule inactiveKnotCanNotBeRegistered()
+{
+    env e;
+    bytes32 knot;
+    require !StakeHouseRegistry.active(knot);
+
+    registerKnotsToSyndicate@withrevert(e,knot);
+    bool reverted = lastReverted;
+
+    assert reverted, "Inactive knot was registered";
+}
+
+
+
 
 /**
  * Address 0 must have zero sETH balance.
