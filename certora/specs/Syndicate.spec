@@ -601,11 +601,11 @@ rule revertIfsETHAmountBiggerThanStakedBalance()
     env e;
     bytes32 knot;
     uint256 amount;
-
+    uint256 staked = sETHStakedBalanceForKnot(knot,e.msg.sender);
     unstake@withrevert(e,e.msg.sender,e.msg.sender,knot,amount);
     bool reverted = lastReverted;
 
-    assert sETHStakedBalanceForKnot(knot,e.msg.sender) < amount => reverted , "unstake didn't revert when nothing is staked";
+    assert staked < amount => reverted , "unstake didn't revert when nothing is staked";
 
 }
 
