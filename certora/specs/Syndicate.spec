@@ -689,6 +689,26 @@ rule claimAsSLOTOwnerToZeroRevertIfKnotNotRegistered()
 
 }
 
+
+/**
+*  claimAsStaker to Syndicate or zero address reverts
+*/
+rule claimAsStakerToZeroRecipientAddreessRevert()
+{
+    
+    env e;
+    bytes32 knot;
+    address recipient; 
+
+    claimAsStaker@withrevert(e,recipient,knot);
+    bool reverted = lastReverted;
+
+    assert recipient == 0 => lastReverted, "calim must revert if recipient address is zero";
+    assert recipient == currentContract => lastReverted, "calim must revert if recipient address is Syndicate";
+
+}
+
+
 /**
  * Address 0 must have zero sETH balance.
  */
