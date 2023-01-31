@@ -568,7 +568,7 @@ rule stakingTooSmallAmountRevert()
     stake@withrevert(e,knot,amount,staker);
     bool reverted = lastReverted;
 
-    assert amount < 1^9 => lastReverted, "stake must revert if amount less than 1";
+    assert amount < 10^9 => lastReverted, "stake must revert if amount less than 1";
 
 }
 
