@@ -592,6 +592,42 @@ rule stakingUnassociatedKnotRevert()
 
 }
 
+/**
+ * unstake revert if amount is bigger than staked balance.
+ */
+rule revertIfsETHAmountBiggerThanStakedBalance()
+{
+    
+    env e;
+    bytes32 knot;
+    uint256 amount;
+
+    unstake@withrevert(e,e.msg.sender,e.msg.sender,knot,amount);
+    bool reverted = lastReverted;
+
+    assert sETHStakedBalanceForKnot(knot,e.msg.sender) < amount => reverted , "unstake didn't revert when nothing is staked";
+
+}
+
+
+/**
+*  Unstaking to a zero address reverts
+*/
+rule unstakeToZeroRecipientAddreessRevert()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; 
+    uint256 amount;
+
+
+    unstake@withrevert(e,staker,staker,knot,amount);
+    bool reverted = lastReverted;
+
+    assert staker == 0 => lastReverted, "unstake must revert if recipient address is zero";
+
+}
 
 /**
  * Address 0 must have zero sETH balance.
