@@ -533,7 +533,44 @@ rule inactiveKnotCanNotBeRegistered()
 }
 
 
+/**
+*  Staking to a zero address reverts
+*/
+rule stakeToZeroAddreessRevert()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; // on-behalf
+    uint256 amount;
 
+
+    stake@withrevert(e,knot,amount,staker);
+    bool reverted = lastReverted;
+
+    assert staker == 0 => lastReverted, "stake must revert if address is zero";
+
+}
+
+
+/**
+*  Staking with too small sETH amount reverts
+*/
+rule stakingTooSmallAmountReverts()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; // on-behalf
+    uint256 amount;
+
+
+    stake@withrevert(e,knot,amount,staker);
+    bool reverted = lastReverted;
+
+    assert amount < 1^9 => lastReverted, "stake must revert if amount less than 1";
+
+}
 
 /**
  * Address 0 must have zero sETH balance.
