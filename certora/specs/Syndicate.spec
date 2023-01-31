@@ -83,6 +83,15 @@ methods {
     batchUpdateCollateralizedSlotOwnersAccruedETH(bytes32,bytes32)
 }
 
+// ------------ FUNCTIONS -------------
+
+/// Corrollary that can be used as requirement after sETH solvency is proven.
+function sETHSolvencyCorrollary(address user1, address user2, bytes32 knot) returns bool {
+    return sETHStakedBalanceForKnot(knot,user1) + sETHStakedBalanceForKnot(knot,user2) <= sETHTotalStakeForKnot(knot);
+}
+
+// ------------ DEFINITIONS -------------
+
 /// We defined additional functions to get around the complexity of defining dynamic arrays in cvl. We filter them in 
 /// normal rules and invariants as they serve no purpose.
 definition notHarnessCall(method f) returns bool = 
@@ -116,12 +125,19 @@ definition notRegisterationMethod(method f) returns bool =
     && f.selector != deRegisterKnots(bytes32,bytes32).selector;
 
 
-// ghost mathint ghostTotalClaimed;
+// ------------ GHOSTS -------------
+
 ghost mapping(bytes32 => uint256) ghostsETHTotalStakeForKnot;
+
+
+// ------------ HOOKS -------------
 
 hook Sstore sETHStakedBalanceForKnot[KEY bytes32 knot][KEY address user] uint256 staked (uint256 old_staked) STORAGE {
   ghostsETHTotalStakeForKnot[knot] = ghostsETHTotalStakeForKnot[knot] + staked - old_staked;
 }
+
+
+// ------------ RULES -------------
 
 /**
 * validate sETHStakedBalanceForKnot is updated when sETHStakedBalanceForKnot gets updated for a user
@@ -135,10 +151,6 @@ rule sETHStakedBalanceForKnotInvariant(method f) {
   assert sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
 }
 
-    // function getUnprocessedETHForAllCollateralizedSlot() public view returns (uint256) {
-    //     return ((calculateETHForFreeFloatingOrCollateralizedHolders() - lastSeenETHPerCollateralizedSlotPerKnot) / numberOfRegisteredKnots);
-    // }
-
 /**
 * Check Correctness of amount of ETH per collateralized share that hasn't yet been allocated to each share
 **/
@@ -149,12 +161,6 @@ rule CorrectAmountOfUnprocessedETHForAllCollateralizedSlot() {
     mathint UnprocessedETH = getUnprocessedETHForAllCollateralizedSlot();
     assert UnprocessedETH == (calcETH-lastSeenETH)/registeredKnots;
 }
-
-/// Corrollary that can be used as requirement after sETH solvency is proven.
-function sETHSolvencyCorrollary(address user1, address user2, bytes32 knot) returns bool {
-    return sETHStakedBalanceForKnot(knot,user1) + sETHStakedBalanceForKnot(knot,user2) <= sETHTotalStakeForKnot(knot);
-}
-
 
 /**
  * An unregistered knot can not be deregistered.
@@ -187,7 +193,6 @@ rule totalEthReceivedMonotonicallyIncreases(method f) filtered {
     assert totalEthReceivedAfter >= totalEthReceivedBefore, "total ether received must not decrease";
 }
 
-// ------------ RULES -------------
 /** -> should check this later
 * numberOfRegisteredKnotsHoldsOnRegisterDeregieter holds 
 */
@@ -497,7 +502,7 @@ rule knotCanNotBeRegisteredTwice()
 }
 
 
-/**
+/** NOT DONE YET **
 * can not register already registered knot
 */
 rule knotCanNotBeRegisteredIfHasNoOwners()
