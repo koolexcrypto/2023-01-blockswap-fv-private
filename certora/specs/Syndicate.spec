@@ -556,7 +556,7 @@ rule stakeToZeroAddreessRevert()
 /**
 *  Staking with too small sETH amount reverts
 */
-rule stakingTooSmallAmountReverts()
+rule stakingTooSmallAmountRevert()
 {
     
     env e;
@@ -571,6 +571,27 @@ rule stakingTooSmallAmountReverts()
     assert amount < 1^9 => lastReverted, "stake must revert if amount less than 1";
 
 }
+
+/**
+*  Stake reverts if knot doesn't belong to a stakehouse
+*/
+rule stakingUnassociatedKnotRevert()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; // on-behalf
+    uint256 amount;
+
+
+    stake@withrevert(e,knot,amount,staker);
+    bool reverted = lastReverted;
+    address stakeHouse = getStakeHouseForKnot(e,knot);
+
+    assert stakeHouse == 0 => lastReverted, "stake must revert if knot is not associated with a stakehouse";
+
+}
+
 
 /**
  * Address 0 must have zero sETH balance.
