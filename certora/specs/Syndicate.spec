@@ -22,7 +22,7 @@ methods {
     getEthBalance(address) returns (uint256) envfree
     calculateETHForFreeFloatingOrCollateralizedHolders() returns (uint256) envfree
     getUnprocessedETHForAllCollateralizedSlot() returns (uint256) envfree
-    
+    claimedPerCollateralizedSlotOwnerOfKnot(bytes32,address) returns (uint256) envfree
     //// Resolving external calls
 	// stakeHouseUniverse
 	stakeHouseKnotInfo(bytes32) returns (address,address,address,uint256,uint256,bool) => DISPATCHER(true)
@@ -708,6 +708,38 @@ rule claimAsStakerToZeroRecipientAddreessRevert()
 
 }
 
+/**
+*  claimAsCollateralizedSLOTOwner gives the expected reward 
+*/
+rule claimAsSLOTOwnerGivesTheExpectedRewards()
+{
+    
+    env e;
+    bytes32 knot;
+    bytes32 knot2;
+    address recipient;
+    
+    require e.msg.sender == recipient;
+    
+    updateAccruedETHPerShares(e);
+
+    updateCollateralizedSlotOwnersAccruedETH(e,knot);
+    uint256 userShare = accruedEarningPerCollateralizedSlotOwnerOfKnot(knot,recipient);
+    uint256 unclaimedUserShare = userShare - claimedPerCollateralizedSlotOwnerOfKnot(knot,recipient);
+    
+    updateCollateralizedSlotOwnersAccruedETH(e,knot2);
+    uint256 userShare2 = accruedEarningPerCollateralizedSlotOwnerOfKnot(knot2,recipient);
+    uint256 unclaimedUserShare2 = userShare2 - claimedPerCollateralizedSlotOwnerOfKnot(knot2,recipient);
+
+    uint256 ETHBalance = getEthBalance(recipient);
+    claimAsCollateralizedSLOTOwner(e,recipient,knot,knot2);
+    uint256 ETHBalanceAfter = getEthBalance(recipient);
+
+    assert knot != knot2 => ETHBalance+unclaimedUserShare+unclaimedUserShare2 == ETHBalanceAfter, "calim didn't give the expected reward";
+    // no double rewarding
+    assert knot == knot2 => ETHBalance+unclaimedUserShare == ETHBalanceAfter, "calim didn't give the expected reward";
+
+}
 
 /**
  * Address 0 must have zero sETH balance.
