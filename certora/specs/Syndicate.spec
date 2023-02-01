@@ -137,45 +137,6 @@ hook Sstore sETHStakedBalanceForKnot[KEY bytes32 knot][KEY address user] uint256
 
 // ------------ RULES -------------
 
-/**
-* validate sETHStakedBalanceForKnot is updated when sETHStakedBalanceForKnot gets updated for a user
-**/
-rule sETHStakedBalanceForKnotInvariant(method f) {
-  env e;
-  bytes32 knot;
-  require sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
-  calldataarg arg;
-  f(e, arg);
-  assert sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
-}
-
-/**
-* Check Correctness of amount of ETH per collateralized share that hasn't yet been allocated to each share
-**/
-rule CorrectAmountOfUnprocessedETHForAllCollateralizedSlot() {
-    mathint calcETH = calculateETHForFreeFloatingOrCollateralizedHolders();
-    mathint lastSeenETH = lastSeenETHPerCollateralizedSlotPerKnot();
-    mathint registeredKnots = numberOfRegisteredKnots();
-    mathint UnprocessedETH = getUnprocessedETHForAllCollateralizedSlot();
-    assert UnprocessedETH == (calcETH-lastSeenETH)/registeredKnots;
-}
-/**
- * Total ETH received must not decrease.
- */
-rule totalEthReceivedMonotonicallyIncreases(method f) filtered {
-    f -> notHarnessCall(f)
-}{
-    
-    uint256 totalEthReceivedBefore = totalETHReceived();
-
-    env e; calldataarg args;
-    f(e, args);
-
-    uint256 totalEthReceivedAfter = totalETHReceived();
-
-    assert totalEthReceivedAfter >= totalEthReceivedBefore, "total ether received must not decrease";
-}
-
 
 
 // ------------ KNOT REGISTERATION -------------
@@ -745,6 +706,45 @@ rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
 
 }
 
+
+/**
+* validate sETHStakedBalanceForKnot is updated when sETHStakedBalanceForKnot gets updated for a user
+**/
+rule sETHStakedBalanceForKnotInvariant(method f) {
+  env e;
+  bytes32 knot;
+  require sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
+  calldataarg arg;
+  f(e, arg);
+  assert sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
+}
+
+/**
+* Check Correctness of amount of ETH per collateralized share that hasn't yet been allocated to each share
+**/
+rule CorrectAmountOfUnprocessedETHForAllCollateralizedSlot() {
+    mathint calcETH = calculateETHForFreeFloatingOrCollateralizedHolders();
+    mathint lastSeenETH = lastSeenETHPerCollateralizedSlotPerKnot();
+    mathint registeredKnots = numberOfRegisteredKnots();
+    mathint UnprocessedETH = getUnprocessedETHForAllCollateralizedSlot();
+    assert UnprocessedETH == (calcETH-lastSeenETH)/registeredKnots;
+}
+/**
+ * Total ETH received must not decrease.
+ */
+rule totalEthReceivedMonotonicallyIncreases(method f) filtered {
+    f -> notHarnessCall(f)
+}{
+    
+    uint256 totalEthReceivedBefore = totalETHReceived();
+
+    env e; calldataarg args;
+    f(e, args);
+
+    uint256 totalEthReceivedAfter = totalETHReceived();
+
+    assert totalEthReceivedAfter >= totalEthReceivedBefore, "total ether received must not decrease";
+}
 
 /**
  * Address 0 must have zero sETH balance.
