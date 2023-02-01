@@ -386,21 +386,18 @@ rule transferOwnershipOnInitialization()
 }
 
 
-/** NOT TESTED YET
-* accumulatedETHPerFreeFloatingShare should be updated only when totalFreeFloatingShares bigger than zero
+/**
+* accumulatedETHPerFreeFloatingShare should be updated when ETH accrued per shares
 */
-// rule updateAccumulatedETHPerFreeFloatingShare()
-// {
-//     env e;
-//     require numberOfRegisteredKnots() > 0;
-//     uint256 NewAccumulatedETH = calculateNewAccumulatedETHPerFreeFloatingShare(e);
-//     require NewAccumulatedETH > 0;
-//     uint256 totalFreeFloatingShares = totalFreeFloatingShares();
-//     uint256 accumulatedETHPerFreeFloatingShare = accumulatedETHPerFreeFloatingShare();
-//     updateAccruedETHPerShares(e);
-//     uint256 accumulatedETHPerFreeFloatingShareAfter = accumulatedETHPerFreeFloatingShare();
+rule updateAccumulatedETHPerFreeFloatingShare()
+{
+    env e;
+    require numberOfRegisteredKnots() > 0;
+    uint256 NewAccumulatedETH = calculateNewAccumulatedETHPerFreeFloatingShare(e);
+    uint256 accumulatedETHPerFreeFloatingShare = accumulatedETHPerFreeFloatingShare();
+    updateAccruedETHPerShares(e);
+    uint256 accumulatedETHPerFreeFloatingShareAfter = accumulatedETHPerFreeFloatingShare();
 
-//     assert totalFreeFloatingShares == 0 => accumulatedETHPerFreeFloatingShareAfter == accumulatedETHPerFreeFloatingShare, "";
-//     assert totalFreeFloatingShares > 0 => accumulatedETHPerFreeFloatingShareAfter == accumulatedETHPerFreeFloatingShare + NewAccumulatedETH, "";
+    assert accumulatedETHPerFreeFloatingShareAfter == accumulatedETHPerFreeFloatingShare + NewAccumulatedETH, "";
 
-// }
+}
