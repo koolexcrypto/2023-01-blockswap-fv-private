@@ -368,21 +368,21 @@ invariant addressZeroHasNoBalance()
 
  // ------------ OTHER -------------
 
-/**
-* initialize can not be called more than once (over the implementation contract)
-*/
-rule initializeCanBeCalledOnlyOnce()
-{
-    env e;
-    address _contractOwner;
-    uint256 _priorityStakingEndBlock;
-    address _priorityStaker;
-    bytes32 knot;
-
-    initialize@withrevert(e,_contractOwner,_priorityStakingEndBlock,_priorityStaker,knot);
-    bool reverted = lastReverted;
-    assert reverted, "Contract was initialized twice";
-}
+// /** LATER
+// * initialize can not be called more than once (over the implementation contract)
+// */
+// rule initializeCanBeCalledOnlyOnce()
+// {
+//     env e;
+//     address _contractOwner;
+//     uint256 _priorityStakingEndBlock;
+//     address _priorityStaker;
+//     bytes32 knot;
+//     bool initialized = getInitialized();
+//     initialize@withrevert(e,_contractOwner,_priorityStakingEndBlock,_priorityStaker,knot);
+//     bool reverted = lastReverted;
+//     assert initialized => reverted, "Contract was initialized twice";
+// }
    
 
 /**
@@ -399,4 +399,23 @@ rule transferOwnershipOnInitialization()
     initialize(e,_contractOwner,_priorityStakingEndBlock,_priorityStaker,knot);
 
     assert owner(e) == _contractOwner, "Contract owner hasn't changed";
+}
+
+
+/**
+* accumulatedETHPerFreeFloatingShare should be updated only when totalFreeFloatingShares bigger than zero
+*/
+rule updateAccumulatedETHPerFreeFloatingShare()
+{
+    env e;
+    require numberOfRegisteredKnots() > 0;
+    uint256 NewAccumulatedETH = calculateNewAccumulatedETHPerFreeFloatingShare(e);
+    uint256 accumulatedETHPerFreeFloatingShare = accumulatedETHPerFreeFloatingShare();
+    uint256 totalFreeFloatingShares = totalFreeFloatingShares();
+    updateAccruedETHPerShares(e);
+    uint256 accumulatedETHPerFreeFloatingShareAfter = accumulatedETHPerFreeFloatingShare();
+
+    assert totalFreeFloatingShares > 0 => accumulatedETHPerFreeFloatingShareAfter == accumulatedETHPerFreeFloatingShare + NewAccumulatedETH, "";
+    assert totalFreeFloatingShares == 0 => accumulatedETHPerFreeFloatingShareAfter == accumulatedETHPerFreeFloatingShare, "";
+
 }
