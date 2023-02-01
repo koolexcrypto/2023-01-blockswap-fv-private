@@ -143,7 +143,7 @@ hook Sstore sETHStakedBalanceForKnot[KEY bytes32 knot][KEY address user] uint256
 /**
 * Staker gets exactly the same sETH token amount upon stake and unstake.
 */
-rule StakerReceivesExactsETH(method f,bytes32 blsPubKey,address staker,uint256 amount)
+rule StakerReceivesExactsETH(bytes32 blsPubKey,address staker,uint256 amount)
 {
     env e;
     require e.msg.sender == staker;
