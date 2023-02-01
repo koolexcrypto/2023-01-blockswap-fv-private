@@ -144,9 +144,7 @@ hook Sstore sETHStakedBalanceForKnot[KEY bytes32 knot][KEY address user] uint256
 /**
  * An unregistered knot can not be deregistered.
  */
-rule canNotDegisterUnregisteredKnot(method f) filtered {
-    f -> notHarnessCall(f)
-} {
+rule canNotDegisterUnregisteredKnot(){
     bytes32 knot; env e;
     require !isKnotRegistered(knot);
 
@@ -158,14 +156,14 @@ rule canNotDegisterUnregisteredKnot(method f) filtered {
 /**
 * numberOfRegisteredKnots holds upon register and deregieter
 */
-rule numberOfRegisteredKnotsHolds(method f,bytes32 blsPubKey)
+rule numberOfRegisteredKnotsHolds(bytes32 knot)
 {
     env e;
     
     uint256 registeredKnotsBefore = numberOfRegisteredKnots();
 
-    registerKnotsToSyndicate(e,blsPubKey);
-    deRegisterKnots(e,blsPubKey);
+    registerKnotsToSyndicate(e,knot);
+    deRegisterKnots(e,knot);
 
     uint256 registeredKnotsAfter = numberOfRegisteredKnots();
 
@@ -221,27 +219,27 @@ rule inactiveKnotCanNotBeRegistered()
 /** 
 * numberOfRegisteredKnotsHoldsOnRegisterDeregieter holds 
 */
-rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 blsPubKey,bytes32 blsPubKey2) filtered {
+rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 knot,bytes32 knot2) filtered {
     f -> notRegisterationMethod(f)
 }{
     env e;
-    require isNoLongerPartOfSyndicate(blsPubKey);
-    require isNoLongerPartOfSyndicate(blsPubKey2);
+    require isNoLongerPartOfSyndicate(knot);
+    require isNoLongerPartOfSyndicate(knot2);
 
     uint256 registeredKnotsBefore = numberOfRegisteredKnots();
 
     if (f.selector == updateCollateralizedSlotOwnersAccruedETH(bytes32).selector) {
-        updateCollateralizedSlotOwnersAccruedETH(e,blsPubKey);
+        updateCollateralizedSlotOwnersAccruedETH(e,knot);
     } else if (f.selector == batchUpdateCollateralizedSlotOwnersAccruedETH(bytes32).selector) {
-        batchUpdateCollateralizedSlotOwnersAccruedETH(e,blsPubKey);
+        batchUpdateCollateralizedSlotOwnersAccruedETH(e,knot);
     } else if (f.selector == batchUpdateCollateralizedSlotOwnersAccruedETH(bytes32,bytes32).selector) {
-        batchUpdateCollateralizedSlotOwnersAccruedETH(e,blsPubKey,blsPubKey2);
+        batchUpdateCollateralizedSlotOwnersAccruedETH(e,knot,knot2);
     } else if (f.selector == claimAsCollateralizedSLOTOwner(address,bytes32).selector) {
         address addr;
-        claimAsCollateralizedSLOTOwner(e,addr,blsPubKey);
+        claimAsCollateralizedSLOTOwner(e,addr,knot);
     } else if (f.selector == claimAsCollateralizedSLOTOwner(address,bytes32,bytes32).selector) {
         address addr;
-        claimAsCollateralizedSLOTOwner(e,addr,blsPubKey,blsPubKey2);
+        claimAsCollateralizedSLOTOwner(e,addr,knot,knot2);
     } else {
         calldataarg args;
         f(e, args);
@@ -259,19 +257,20 @@ rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 blsPubKey
 /**
 * Staker invariants (e.g.sETHUserClaimForKnot and sETHStakedBalanceForKnot ) must never decrease via any action taken by another actor.
 */
-rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker)
-{
+rule stakerInvariantsMustNeverDecrease(method f,bytes32 knot,address staker) filtered {
+    f -> notHarnessCall(f)
+}{
     env e;
     require e.msg.sender != staker;
 
-    uint256 sETHUserClaimForKnot = sETHUserClaimForKnot(blsPubKey,staker);
-    uint256 sETHStakedBalanceForKnot = sETHStakedBalanceForKnot(blsPubKey,staker);
+    uint256 sETHUserClaimForKnot = sETHUserClaimForKnot(knot,staker);
+    uint256 sETHStakedBalanceForKnot = sETHStakedBalanceForKnot(knot,staker);
 
     calldataarg args;
     f(e, args);
 
-    uint256 sETHUserClaimForKnotAfter = sETHUserClaimForKnot(blsPubKey,staker);
-    uint256 sETHStakedBalanceForKnotAfter = sETHStakedBalanceForKnot(blsPubKey,staker);
+    uint256 sETHUserClaimForKnotAfter = sETHUserClaimForKnot(knot,staker);
+    uint256 sETHStakedBalanceForKnotAfter = sETHStakedBalanceForKnot(knot,staker);
 
     assert sETHUserClaimForKnot <= sETHUserClaimForKnotAfter, "sETHUserClaimForKnot doesn't hold as expected";
     assert sETHStakedBalanceForKnot <= sETHStakedBalanceForKnotAfter, "sETHStakedBalanceForKnot doesn't hold as expected";
@@ -282,8 +281,9 @@ rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker
 /**
 sETHTotalStakeForKnot must never go above 12 ether
 **/
-rule totalStakeForKnotMaxIs12Ether(method f,bytes32 knot)
-{
+rule totalStakeForKnotMaxIs12Ether(method f,bytes32 knot) filtered {
+    f -> notHarnessCall(f)
+}{
     require sETHTotalStakeForKnot(knot) <= 12^18;
 
     env e;
@@ -319,7 +319,9 @@ rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
 /**
 * validate sETHStakedBalanceForKnot is updated when sETHStakedBalanceForKnot gets updated for a user
 **/
-rule sETHStakedBalanceForKnotInvariant(method f) {
+rule sETHStakedBalanceForKnotInvariant(method f)  filtered {
+    f -> notHarnessCall(f)
+}{
   env e;
   bytes32 knot;
   require sETHTotalStakeForKnot(knot) == ghostsETHTotalStakeForKnot[knot];
