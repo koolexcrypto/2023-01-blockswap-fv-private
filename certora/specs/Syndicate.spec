@@ -159,21 +159,6 @@ rule CorrectAmountOfUnprocessedETHForAllCollateralizedSlot() {
     mathint UnprocessedETH = getUnprocessedETHForAllCollateralizedSlot();
     assert UnprocessedETH == (calcETH-lastSeenETH)/registeredKnots;
 }
-
-/**
- * An unregistered knot can not be deregistered.
- */
-rule canNotDegisterUnregisteredKnot(method f) filtered {
-    f -> notHarnessCall(f)
-} {
-    bytes32 knot; env e;
-    require !isKnotRegistered(knot);
-
-    deRegisterKnots@withrevert(e, knot);
-
-    assert lastReverted, "deRegisterKnots must revert if knot is not registered";
-}
-
 /**
  * Total ETH received must not decrease.
  */
@@ -191,7 +176,88 @@ rule totalEthReceivedMonotonicallyIncreases(method f) filtered {
     assert totalEthReceivedAfter >= totalEthReceivedBefore, "total ether received must not decrease";
 }
 
-/** -> should check this later
+
+
+// ------------ KNOT REGISTERATION -------------
+
+/**
+ * An unregistered knot can not be deregistered.
+ */
+rule canNotDegisterUnregisteredKnot(method f) filtered {
+    f -> notHarnessCall(f)
+} {
+    bytes32 knot; env e;
+    require !isKnotRegistered(knot);
+
+    deRegisterKnots@withrevert(e, knot);
+
+    assert lastReverted, "deRegisterKnots must revert if knot is not registered";
+}
+
+/**
+* numberOfRegisteredKnots holds upon register and deregieter
+*/
+rule numberOfRegisteredKnotsHolds(method f,bytes32 blsPubKey)
+{
+    env e;
+    
+    uint256 registeredKnotsBefore = numberOfRegisteredKnots();
+
+    registerKnotsToSyndicate(e,blsPubKey);
+    deRegisterKnots(e,blsPubKey);
+
+    uint256 registeredKnotsAfter = numberOfRegisteredKnots();
+
+    assert registeredKnotsBefore == registeredKnotsAfter, "numberOfRegisteredKnots doesn't hold as expected";
+
+}
+
+/**
+* can not register already registered knot
+*/
+rule knotCanNotBeRegisteredTwice()
+{
+    env e;
+    bytes32 knot;
+
+    registerKnotsToSyndicate(e,knot);
+    registerKnotsToSyndicate@withrevert(e,knot);
+    bool reverted = lastReverted;
+
+    assert reverted, "Knot was registered twice";
+}
+
+/**
+* can not register already registered knot
+*/
+rule knotCanNotBeRegisteredIfHasNoOwners()
+{
+    env e;
+    bytes32 knot;
+    require SlotSettlementRegistry.numberOfCollateralisedSlotOwnersForKnot(e,knot) == 0;
+    
+    registerKnotsToSyndicate@withrevert(e,knot);
+    bool reverted = lastReverted;
+
+    assert reverted, "Knot was registered with no SLOT owners";
+}
+
+/**
+* can not register inactive knot
+*/
+rule inactiveKnotCanNotBeRegistered()
+{
+    env e;
+    bytes32 knot;
+    require !StakeHouseRegistry.active(knot);
+
+    registerKnotsToSyndicate@withrevert(e,knot);
+    bool reverted = lastReverted;
+
+    assert reverted, "Inactive knot was registered";
+}
+
+/** 
 * numberOfRegisteredKnotsHoldsOnRegisterDeregieter holds 
 */
 rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 blsPubKey,bytes32 blsPubKey2) filtered {
@@ -226,46 +292,8 @@ rule numberOfRegisteredKnotsHoldsOnRegisterDeregieter(method f,bytes32 blsPubKey
 
 }
 
-/**
-* numberOfRegisteredKnots holds upon register and deregieter
-*/
-rule numberOfRegisteredKnotsHolds(method f,bytes32 blsPubKey)
-{
-    env e;
-    
-    uint256 registeredKnotsBefore = numberOfRegisteredKnots();
 
-    registerKnotsToSyndicate(e,blsPubKey);
-    deRegisterKnots(e,blsPubKey);
-
-    uint256 registeredKnotsAfter = numberOfRegisteredKnots();
-
-    assert registeredKnotsBefore == registeredKnotsAfter, "numberOfRegisteredKnots doesn't hold as expected";
-
-}
-
-/**
-* Staker invariants (e.g.sETHUserClaimForKnot and sETHStakedBalanceForKnot ) must never decrease via any action taken by another actor.
-*/
-rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker)
-{
-    env e;
-    require e.msg.sender != staker;
-
-    uint256 sETHUserClaimForKnot = sETHUserClaimForKnot(blsPubKey,staker);
-    uint256 sETHStakedBalanceForKnot = sETHStakedBalanceForKnot(blsPubKey,staker);
-
-    calldataarg args;
-    f(e, args);
-
-    uint256 sETHUserClaimForKnotAfter = sETHUserClaimForKnot(blsPubKey,staker);
-    uint256 sETHStakedBalanceForKnotAfter = sETHStakedBalanceForKnot(blsPubKey,staker);
-
-    assert sETHUserClaimForKnot <= sETHUserClaimForKnotAfter, "sETHUserClaimForKnot doesn't hold as expected";
-    assert sETHStakedBalanceForKnot <= sETHStakedBalanceForKnotAfter, "sETHStakedBalanceForKnot doesn't hold as expected";
-
-}
-
+// ------------ STAKING -------------
 
 /**
 * Staker gets exactly the same sETH token amount upon stake and unstake.
@@ -282,7 +310,6 @@ rule StakerReceivesExactsETH(method f,bytes32 blsPubKey,address staker,uint256 a
     assert sETHToken.balanceOf(staker) == amount, "Staker got more/less sETH";
 
 }
-
 
 /**
  * Staker receives sETH token upon unstake.
@@ -306,7 +333,6 @@ rule receivesETHOnUnstake()
 
     assert amountAfter == amountBefore + amount, "Staker didn't receive the expected sETH";
 }
-
 
 /**
  * revert if transferring sETH token fails upon unstake.
@@ -371,55 +397,6 @@ rule revertIfsETHTransferFailOnStake()
 
 }
 
-/**
- * Staker receives uncalimed share of ETH when claiming.
- */
-rule stakerReceivesExactUnclaimedETHWhenClaiming()
-{
-    
-    env e;
-    bytes32 knot;
-    uint256 amount;
-    
-    // Safe Assumptions
-    require e.msg.sender != 0;
-    require e.msg.sender != currentContract;
-    require e.msg.value == 0;
-    updateAccruedETHPerShares(e); // assuming this was called before, otherwise, it is a issue.
-    uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
-    uint256 etherBalance = getEthBalance(e.msg.sender);
-    claimAsStaker(e,e.msg.sender,knot);
-
-    uint256 etherBalanceAfter = getEthBalance(e.msg.sender);
-
-    assert etherBalanceAfter == etherBalance + unclaimed ,"Staker didn't receive exact ether share";
-
-}
-
-/**
- * unclaimed User Share must be zero after claiming as a staker.
- */
-rule zeroUnclaimedUserShareAfterClaiming()
-{
-    
-    env e;
-    bytes32 knot;
-    uint256 amount;
-    
-    // Safe Assumptions
-    require e.msg.sender != 0;
-    require e.msg.sender != currentContract;
-    require e.msg.value == 0;
-
-    uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
-
-    claimAsStaker(e,e.msg.sender,knot);
-
-    uint256 unclaimedAfter = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
-
-    assert unclaimed > 0 => unclaimedAfter == 0 ,"Unclaimed User Share is not zero after claiming";
-
-}
 
 /**
  * Staker receives uncalimed share of ETH.
@@ -466,70 +443,6 @@ rule onlyPriorityStakerStake()
     assert lastReverted, "stake must revert if block in future and staker is not priority";
 
 }
-
-
-
-/**
-sETHTotalStakeForKnot must never go above 12 ether
-**/
-rule totalStakeForKnotMaxIs12Ether(method f,bytes32 knot)
-{
-    require sETHTotalStakeForKnot(knot) <= 12^18;
-
-    env e;
-    calldataarg args;
-    f(e, args);
-
-    assert sETHTotalStakeForKnot(knot) <= 12^18;
-}
-
-
-/**
-* can not register already registered knot
-*/
-rule knotCanNotBeRegisteredTwice()
-{
-    env e;
-    bytes32 knot;
-
-    registerKnotsToSyndicate(e,knot);
-    registerKnotsToSyndicate@withrevert(e,knot);
-    bool reverted = lastReverted;
-
-    assert reverted, "Knot was registered twice";
-}
-
-
-/** NOT DONE YET **
-* can not register already registered knot
-*/
-rule knotCanNotBeRegisteredIfHasNoOwners()
-{
-    env e;
-    bytes32 knot;
-    require SlotSettlementRegistry.numberOfCollateralisedSlotOwnersForKnot(e,knot) == 0;
-    
-    registerKnotsToSyndicate@withrevert(e,knot);
-    bool reverted = lastReverted;
-
-    assert reverted, "Knot was registered with no SLOT owners";
-}
-
-/**
-* can not register inactive knot
-*/
-rule inactiveKnotCanNotBeRegistered()
-{
-    env e;
-    bytes32 knot;
-    require !StakeHouseRegistry.active(knot);
-
-    registerKnotsToSyndicate@withrevert(e,knot);
-    bool reverted = lastReverted;
-
-    assert reverted, "Inactive knot was registered";
-}
-
 
 /**
 *  Staking to a zero address reverts
@@ -631,25 +544,55 @@ rule unstakeToZeroRecipientAddreessRevert()
 
 
 
+// ------------ CLAIMING -------------
+
 /**
-* totalFreeFloatingShares counts non deregistered knots only
-*/
-rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
+ * Staker receives uncalimed share of ETH when claiming.
+ */
+rule stakerReceivesExactUnclaimedETHWhenClaiming()
 {
     
     env e;
     bytes32 knot;
-    address staker; 
     uint256 amount;
-    require amount > 0;
-    uint256 totalFreeFloatingShares = totalFreeFloatingShares();
-    bool isDeregistered = isNoLongerPartOfSyndicate(knot);
+    
+    // Safe Assumptions
+    require e.msg.sender != 0;
+    require e.msg.sender != currentContract;
+    require e.msg.value == 0;
+    updateAccruedETHPerShares(e); // assuming this was called before, otherwise, it is a issue.
+    uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
+    uint256 etherBalance = getEthBalance(e.msg.sender);
+    claimAsStaker(e,e.msg.sender,knot);
 
-    unstake(e,staker,staker,knot,amount);
-    uint256 totalFreeFloatingSharesAfter = totalFreeFloatingShares();
+    uint256 etherBalanceAfter = getEthBalance(e.msg.sender);
 
-    assert isDeregistered =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
-    assert !isDeregistered =>  totalFreeFloatingShares+amount == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
+    assert etherBalanceAfter == etherBalance + unclaimed ,"Staker didn't receive exact ether share";
+
+}
+
+/**
+ * unclaimed User Share must be zero after claiming as a staker.
+ */
+rule zeroUnclaimedUserShareAfterClaiming()
+{
+    
+    env e;
+    bytes32 knot;
+    uint256 amount;
+    
+    // Safe Assumptions
+    require e.msg.sender != 0;
+    require e.msg.sender != currentContract;
+    require e.msg.value == 0;
+
+    uint256 unclaimed = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
+
+    claimAsStaker(e,e.msg.sender,knot);
+
+    uint256 unclaimedAfter = calculateUnclaimedFreeFloatingETHShare(e,knot, e.msg.sender);
+
+    assert unclaimed > 0 => unclaimedAfter == 0 ,"Unclaimed User Share is not zero after claiming";
 
 }
 
@@ -740,6 +683,68 @@ rule claimAsSLOTOwnerGivesTheExpectedRewards()
     assert knot == knot2 => ETHBalance+unclaimedUserShare == ETHBalanceAfter, "calim didn't give the expected reward";
 
 }
+
+// ------------ INVARIANTS -------------
+
+/**
+* Staker invariants (e.g.sETHUserClaimForKnot and sETHStakedBalanceForKnot ) must never decrease via any action taken by another actor.
+*/
+rule stakerInvariantsMustNeverDecrease(method f,bytes32 blsPubKey,address staker)
+{
+    env e;
+    require e.msg.sender != staker;
+
+    uint256 sETHUserClaimForKnot = sETHUserClaimForKnot(blsPubKey,staker);
+    uint256 sETHStakedBalanceForKnot = sETHStakedBalanceForKnot(blsPubKey,staker);
+
+    calldataarg args;
+    f(e, args);
+
+    uint256 sETHUserClaimForKnotAfter = sETHUserClaimForKnot(blsPubKey,staker);
+    uint256 sETHStakedBalanceForKnotAfter = sETHStakedBalanceForKnot(blsPubKey,staker);
+
+    assert sETHUserClaimForKnot <= sETHUserClaimForKnotAfter, "sETHUserClaimForKnot doesn't hold as expected";
+    assert sETHStakedBalanceForKnot <= sETHStakedBalanceForKnotAfter, "sETHStakedBalanceForKnot doesn't hold as expected";
+
+}
+
+
+/**
+sETHTotalStakeForKnot must never go above 12 ether
+**/
+rule totalStakeForKnotMaxIs12Ether(method f,bytes32 knot)
+{
+    require sETHTotalStakeForKnot(knot) <= 12^18;
+
+    env e;
+    calldataarg args;
+    f(e, args);
+
+    assert sETHTotalStakeForKnot(knot) <= 12^18;
+}
+
+/**
+* totalFreeFloatingShares counts non deregistered knots only
+*/
+rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
+{
+    
+    env e;
+    bytes32 knot;
+    address staker; 
+    uint256 amount;
+    require amount > 0;
+    uint256 totalFreeFloatingShares = totalFreeFloatingShares();
+    bool isDeregistered = isNoLongerPartOfSyndicate(knot);
+
+    unstake(e,staker,staker,knot,amount);
+    uint256 totalFreeFloatingSharesAfter = totalFreeFloatingShares();
+
+    assert isDeregistered =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
+    assert !isDeregistered =>  totalFreeFloatingShares+amount == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
+
+}
+
 
 /**
  * Address 0 must have zero sETH balance.
