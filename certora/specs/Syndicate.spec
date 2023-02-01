@@ -293,7 +293,7 @@ rule totalStakeForKnotMaxIs12Ether(method f,bytes32 knot) filtered {
     assert sETHTotalStakeForKnot(knot) <= 12^18;
 }
 
-/**
+/** 
 * totalFreeFloatingShares counts non deregistered knots only
 */
 rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
@@ -304,6 +304,7 @@ rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
     address staker; 
     uint256 amount;
     require amount > 0;
+    
     uint256 totalFreeFloatingShares = totalFreeFloatingShares();
     bool isDeregistered = isNoLongerPartOfSyndicate(knot);
 
@@ -311,7 +312,7 @@ rule totalFreeFloatingSharesCountNonDeregisteredKnotsOnly()
     uint256 totalFreeFloatingSharesAfter = totalFreeFloatingShares();
 
     assert isDeregistered =>  totalFreeFloatingShares == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
-    assert !isDeregistered =>  totalFreeFloatingShares+amount == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
+    assert !isDeregistered =>  totalFreeFloatingShares-amount == totalFreeFloatingSharesAfter, "totalFreeFloatingShares deducted by a deregistered knot";
 
 }
 
