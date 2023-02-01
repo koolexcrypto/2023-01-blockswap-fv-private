@@ -367,22 +367,6 @@ invariant addressZeroHasNoBalance()
 
 
  // ------------ OTHER -------------
-
-// /** LATER
-// * initialize can not be called more than once (over the implementation contract)
-// */
-// rule initializeCanBeCalledOnlyOnce()
-// {
-//     env e;
-//     address _contractOwner;
-//     uint256 _priorityStakingEndBlock;
-//     address _priorityStaker;
-//     bytes32 knot;
-//     bool initialized = getInitialized();
-//     initialize@withrevert(e,_contractOwner,_priorityStakingEndBlock,_priorityStaker,knot);
-//     bool reverted = lastReverted;
-//     assert initialized => reverted, "Contract was initialized twice";
-// }
    
 
 /**
