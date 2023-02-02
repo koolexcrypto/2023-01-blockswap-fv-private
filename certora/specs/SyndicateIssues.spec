@@ -86,6 +86,7 @@ Title: Deregistering inactive knot always reverts
 Description: 
 When the liquid staking manager (Syndicate owner) calls deRegisterKnots to deregister a knot, 
 and if the knot is inactive, the function will always revert.
+Check: https://github.com/koolexcrypto/2023-01-blockswap-fv-private/issues/1
 **/
 rule deregisterInactiveKnotShouldSucceed()
 {
@@ -120,6 +121,7 @@ Description:
 If a knot went inactive in the stakehouse, 
 and a user unstake his/her sETH balance before deregistering the knot,
 The Syndicate deducts this amount from TotalFreeFloatingShares which is not supposed to occur.
+Check: https://github.com/koolexcrypto/2023-01-blockswap-fv-private/issues/2
 */
 rule totalFreeFloatingSharesCountActiveKnotsOnly()
 {
