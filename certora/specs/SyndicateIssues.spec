@@ -143,8 +143,3 @@ rule totalFreeFloatingSharesCountActiveKnotsOnly()
 }
 
 
-/**
- * Address 0 must have zero sETH balance.
- */
-invariant addressZeroHasNoBalance()
-    sETHToken.balanceOf(0) == 0
