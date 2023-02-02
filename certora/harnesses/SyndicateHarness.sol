@@ -10,6 +10,19 @@ contract SyndicateHarness is Syndicate {
     address registry;
     address universe;
 
+    function initialize(
+        address _contractOwner,
+        uint256 _priorityStakingEndBlock,
+        address _priorityStaker,
+        blsKey input
+        ) public {
+        blsKey[] memory next_input = new blsKey[](1);
+        next_input[0] = input;
+        address[] memory next_input2 = new address[](1);
+        next_input2[0] = _priorityStaker;
+        initialize(_contractOwner,_priorityStakingEndBlock,next_input2,next_input);
+    }
+
     function registerKnotsToSyndicate(blsKey input) public {
         blsKey[] memory next_input = new blsKey[](1);
         next_input[0] = input;
@@ -132,5 +145,14 @@ contract SyndicateHarness is Syndicate {
     function getStakeHouseUniverse() internal view override returns (IStakeHouseUniverse stakeHouseUniverse) {
         return IStakeHouseUniverse(universe);
     }
+
+    function getEthBalance(address account) public view returns (uint256){
+		return account.balance;
+	}
+
+    function getStakeHouseForKnot(blsKey _blsPubKey) public view returns (address){
+        (address stakeHouse,,,,,) = getStakeHouseUniverse().stakeHouseKnotInfo(blsKey.unwrap(_blsPubKey));
+        return stakeHouse;
+	}
 }
 

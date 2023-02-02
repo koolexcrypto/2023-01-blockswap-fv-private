@@ -85,4 +85,52 @@ contract  MocksETH is ERC20PermitUpgradeable {
         uint256 sETHBalance = slotRegistry.sETHForSLOTBalance(stakehouse(), balanceOf(_owner));
         return sETHBalance.sDivision(BASE_EXCHANGE_RATE);
     }
+
+    /**
+    transfer that comply with ERC20 standard
+    Doesn't revert on failure. return false instead.
+    */
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+        uint256 senderBalance = balanceOf(_msgSender());
+        if(senderBalance >= amount){
+            _transfer(_msgSender(), recipient, amount);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    /**
+    transferFrom that comply with ERC20 standard
+    Doesn't revert on failure. return false instead.
+    */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+
+        _beforeTokenTransfer(sender, recipient, amount);
+
+        uint256 senderBalance = balanceOf(sender);
+        if(senderBalance >= amount){
+            _transfer(sender, recipient, amount);
+            uint256 currentAllowance = allowance(sender,_msgSender());
+            if(currentAllowance >= amount){
+                unchecked {
+                    _approve(sender, _msgSender(), currentAllowance - amount);
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+        
+    }
+
 }
