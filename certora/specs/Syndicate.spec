@@ -114,6 +114,7 @@ definition notHarnessCall(method f) returns bool =
 definition notRegisterationMethod(method f) returns bool = 
     f.selector != claimAsCollateralizedSLOTOwner(address,bytes32[]).selector     
     && f.selector != batchUpdateCollateralizedSlotOwnersAccruedETH(bytes32[]).selector     
+    && f.selector != initialize(address,uint256,address,bytes32).selector 
     && f.selector != initialize(address,uint256,address[],bytes32[]).selector 
     && f.selector != registerKnotsToSyndicate(bytes32[]).selector 
     && f.selector != deRegisterKnots(bytes32[]).selector 
